@@ -18,9 +18,10 @@ jobs:
         if: github.event_name == 'push'
         uses: actions/checkout@v4
         with:
-          repository: 'taosdata/TDengine'
+          # repository: 'taosdata/TDengine'
+          repository: 'freemine/TDengine'
           path: 'TDengine'
-          ref: main
+          ref: use.lib.for.ext_ssl
       
       - name: checkout TDengine manually
         if: github.event_name == 'workflow_dispatch'
@@ -52,9 +53,10 @@ jobs:
         if: github.event_name == 'push'
         uses: actions/checkout@v4
         with:
-          repository: 'taosdata/TDengine'
+          # repository: 'taosdata/TDengine'
+          repository: 'freemine/TDengine'
           path: 'TDengine'
-          ref: main
+          ref: use.lib.for.ext_ssl
       
       - name: checkout TDengine manually
         if: github.event_name == 'workflow_dispatch'
