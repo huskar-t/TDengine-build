@@ -45,7 +45,7 @@ jobs:
       - name: Make TDengine
         run: |
           cd TDengine/debug/
-          make -j4
+          make -j8
   test_x86:
     runs-on: ubuntu-24.04
     steps:
@@ -80,4 +80,4 @@ jobs:
       - name: Make TDengine
         run: |
           cd TDengine/debug/
-          make -j4
+          make -j8
