@@ -44,4 +44,4 @@ jobs:
       - name: Make TDengine
         run: |
           cd TDengine/debug/
-          make -j4
+          make
