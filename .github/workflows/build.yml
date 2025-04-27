@@ -18,10 +18,9 @@ jobs:
         if: github.event_name == 'push'
         uses: actions/checkout@v4
         with:
-          # repository: 'taosdata/TDengine'
-          repository: 'freemine/TDengine'
+          repository: 'taosdata/TDengine'
           path: 'TDengine'
-          ref: use.lib.for.ext_ssl
+          ref: main
       
       - name: checkout TDengine manually
         if: github.event_name == 'workflow_dispatch'
@@ -40,7 +39,7 @@ jobs:
         run: |
           cd TDengine
           mkdir debug && cd debug
-          cmake .. -DBUILD_JDBC=false -DVERNUMBER=3.9.9.9 -DBUILD_DEPENDENCY_TESTS=false
+          cmake .. -DBUILD_JDBC=false -DVERNUMBER=3.9.9.9 -DWEBSOCKET -DBUILD_DEPENDENCY_TESTS=false
 
       - name: Make TDengine
         run: |
@@ -75,7 +74,7 @@ jobs:
         run: |
           cd TDengine
           mkdir debug && cd debug
-          cmake .. -DBUILD_JDBC=false -DVERNUMBER=3.9.9.9 -DBUILD_DEPENDENCY_TESTS=false
+          cmake .. -DBUILD_JDBC=false -DVERNUMBER=3.9.9.9 -DWEBSOCKET -DBUILD_DEPENDENCY_TESTS=false
 
       - name: Make TDengine
         run: |
