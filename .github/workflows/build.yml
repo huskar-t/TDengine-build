@@ -10,7 +10,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -71,7 +71,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: 'tests'
-          persist-credentials: false
       
       - name: build tests
         run: |
