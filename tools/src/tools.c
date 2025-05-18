@@ -88,6 +88,18 @@ void async_query_callback(void *param, TAOS_RES *res, int code) {
     sem_post(async_param->sem);
 }
 
+void async_fetch_callback(void *param, TAOS_RES *res, int code) {
+    AsyncQueryParam *async_param = (AsyncQueryParam *) param;
+    async_param->result = res;
+    if (code < 0) {
+        async_param->code = code;
+        async_param->errmsg = strdup(taos_errstr(res));
+    } else {
+        async_param->code = 0;
+    }
+    sem_post(async_param->sem);
+}
+
 int execute_async(TAOS *taos, const char *query, bool fetch_result, sem_t *sem, int64_t reqid) {
     AsyncQueryParam *param = calloc(1, sizeof(AsyncQueryParam));
     if (param == NULL) {
@@ -145,7 +157,7 @@ int execute_async(TAOS *taos, const char *query, bool fetch_result, sem_t *sem, 
         }
         if (fetch_result) {
             while (1) {
-                taos_fetch_raw_block_a(param->result, async_query_callback,param);
+                taos_fetch_raw_block_a(param->result, async_fetch_callback,param);
                 do {
                     ret = sem_wait(sem);
                 } while (-1 == ret && errno == EINTR);
