@@ -46,7 +46,7 @@ jobs:
         id: cache-ext
         with:
           path: TDengine/.externals
-          key: ${{ runner.os }}-${{ matrix.os }}-${{ hashFiles('TDengine/cmake/external.cmake', 'cmake/in/**') }}-build-ext-v3
+          key: ${{ runner.os }}--${{ hashFiles('TDengine/cmake/external.cmake', 'cmake/in/**') }}-build-ext-v3
 
       - name: Cmake TDengine
         run: |
@@ -85,6 +85,7 @@ jobs:
         run: |
           cd tests/tests
           taos -s "create database test"
+          sleep 5
           pip install psutil
           python3 monitor.py
           tree ../dist
