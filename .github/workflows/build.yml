@@ -1,6 +1,8 @@
 name: Go
 
 on:
+  schedule:
+    - cron: '0 0 * * *'
   push:
   workflow_dispatch:
     inputs:
@@ -19,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: checkout TDengine by push
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'schedule'
         uses: actions/checkout@v4
         with:
           repository: 'taosdata/TDengine'

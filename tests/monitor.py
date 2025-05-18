@@ -92,11 +92,11 @@ if __name__ == "__main__":
     # 配置要监控的进程 (示例配置)
     processes_config = {
         "conn": ["../debug/build/bin/conn_test"],
-        # "insert": ["./build/bin/insert_test"],
-        # "query": ["./build/bin/query_test"],
+        "insert": ["./build/bin/insert_test"],
+        "query": ["./build/bin/query_test"],
     }
-    monitor_interval = 5  # 监控间隔时间（秒）
-    monitor_time = 20   # 监控持续时间（秒）
+    monitor_interval = 15  # 监控间隔时间（秒）
+    monitor_time = 2 * 60 * 60   # 监控持续时间（秒）
     target_dir = '../dist/data'
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
