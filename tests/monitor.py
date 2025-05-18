@@ -92,14 +92,26 @@ if __name__ == "__main__":
     # 配置要监控的进程 (示例配置)
     processes_config = {
         "conn": ["../debug/build/bin/conn_test"],
-        "insert": ["./debug/build/bin/insert_test"],
-        "query": ["./debug/build/bin/query_test"],
+        "insert": ["../debug/build/bin/insert_test"],
+        "query": ["../debug/build/bin/query_test"],
     }
     monitor_interval = 15  # 监控间隔时间（秒）
     monitor_time = 2 * 60 * 60   # 监控持续时间（秒）
     target_dir = '../dist/data'
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
+    
+    # 启动进程
+    proc_list = []
+    # 获取 taosd 进程
+    taosd_process = None
+    for proc in psutil.process_iter(['pid', 'name']):
+        if proc.info['name'] == 'taosd':
+            taosd_process = proc
+            break
+    for name, cmd in processes_config.items():
+        proc = start_process(name, cmd)
+        proc_list.append(proc)
 
     # 运行监控
     current_time = datetime.now()
@@ -123,17 +135,6 @@ if __name__ == "__main__":
             csv_writer.writerow(['ts', 'filename'])
         csv_writer.writerow([time_str,output_file_name])
 
-    # 启动进程
-    proc_list = []
-    # 获取 taosd 进程
-    taosd_process = None
-    for proc in psutil.process_iter(['pid', 'name']):
-        if proc.info['name'] == 'taosd':
-            taosd_process = proc
-            break
-    for name, cmd in processes_config.items():
-        proc = start_process(name, cmd)
-        proc_list.append(proc)
     try:
         run_monitoring(proc_list, output_file,monitor_interval,monitor_time)
     finally:
