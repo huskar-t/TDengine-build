@@ -12,45 +12,6 @@ on:
 
 jobs:
   test_arm:
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - name: checkout TDengine by push
-        if: github.event_name == 'push'
-        uses: actions/checkout@v4
-        with:
-          repository: 'taosdata/TDengine'
-          path: 'TDengine'
-          ref: main
-      
-      - name: checkout TDengine manually
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/checkout@v4
-        with:
-          repository: 'taosdata/TDengine'
-          path: 'TDengine'
-          ref: ${{ inputs.tbBranch }}
-
-      - name: Get CMake
-        uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: 3.31.6
-      
-      - name: Set up Rust
-        id: setup-rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cmake TDengine
-        run: |
-          cd TDengine
-          mkdir debug && cd debug
-          cmake .. -DBUILD_JDBC=false -DBUILD_HTTP=false -DWEBSOCKET=true -DVERNUMBER=3.9.9.9 -DBUILD_DEPENDENCY_TESTS=false
-          # cmake .. -DBUILD_JDBC=false -DVERNUMBER=3.9.9.9 -DWEBSOCKET=true -DBUILD_DEPENDENCY_TESTS=false
-
-      - name: Make TDengine
-        run: |
-          cd TDengine/debug/
-          make -j8
-  test_x86:
     runs-on: ubuntu-24.04
     steps:
       - name: checkout TDengine by push
@@ -74,18 +35,48 @@ jobs:
         with:
           cmakeVersion: 3.31.6
 
-      - name: Set up Rust
-        id: setup-rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Cache externals built
+        uses: actions/cache@v4
+        id: cache-ext
+        with:
+          path: TDengine/.externals
+          key: ${{ runner.os }}-${{ matrix.os }}-${{ hashFiles('TDengine/cmake/external.cmake', 'cmake/in/**') }}-build-ext-v3
 
       - name: Cmake TDengine
         run: |
           cd TDengine
           mkdir debug && cd debug
-          cmake .. -DBUILD_JDBC=false -DBUILD_HTTP=false -DWEBSOCKET=true -DVERNUMBER=3.9.9.9 -DBUILD_DEPENDENCY_TESTS=false
-          # cmake .. -DBUILD_JDBC=false -DVERNUMBER=3.9.9.9 -DWEBSOCKET=true -DBUILD_DEPENDENCY_TESTS=false
+          cmake .. -DBUILD_DEPENDENCY_TESTS=false
 
       - name: Make TDengine
         run: |
           cd TDengine/debug/
           make -j8
+          sudo make install
+
+      - name: start shell
+        run: |
+          cat >start.sh<<EOF
+          ulimit -n 65535 && TAOS_SUPPORT_VNODES=256 taosd
+          EOF
+
+      - name: start taosd
+        run: nohup sudo sh ./start.sh & disown
+      
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          path: 'tests'
+      
+      - name: build tests
+        run: |
+          cd tests
+          mkdir build && cd build
+          cmake ..
+          make -j8
+
+      - name: run tests
+        run: |
+          cd tests/tests
+          pip install psutil
+          python3 monitor.py

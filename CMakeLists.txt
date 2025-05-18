@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.16)
+project(StabilityTesting C)
+
+set(CMAKE_C_STANDARD 11)
+set(BUILD_DIR ${CMAKE_BINARY_DIR}/build)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BUILD_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BUILD_DIR}/lib)
+add_subdirectory(tools)
+add_subdirectory(cmd/conn)
+add_subdirectory(cmd/insert)
+add_subdirectory(cmd/query)
