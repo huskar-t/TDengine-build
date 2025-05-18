@@ -84,6 +84,7 @@ jobs:
       - name: run tests
         run: |
           cd tests/tests
+          taos -s "create database test"
           pip install psutil
           python3 monitor.py
           tree ../dist
