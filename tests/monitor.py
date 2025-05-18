@@ -1,6 +1,7 @@
 import csv
 import os
 import subprocess
+import sys
 import psutil
 import time
 from datetime import datetime, timedelta
@@ -82,6 +83,9 @@ def run_monitoring(proc_list,output_file,monitor_interval,monitor_time):
         mem_data_list = monitor_memory_usage(pid_list)
         for i, mem_data in enumerate(mem_data_list):
             data[i + 1] = mem_data
+        # 打印内存使用情况
+        csv_out = csv.writer(sys.stdout)
+        csv_out.writerow(data)
         # 将数据写入文件
         with open(output_file, 'a') as f:
             csv_writer = csv.writer(f)
@@ -123,9 +127,11 @@ if __name__ == "__main__":
     process_name_list = list(processes_config.keys())
     output_file = os.path.join(target_dir, output_file_name)
     print(f"输出文件: {output_file}")
+    headers = ['ts','taosd'] + process_name_list
+    csv_out = csv.writer(sys.stdout)
+    csv_out.writerow(headers)
     with open(output_file, 'w') as f:
         csv_writer = csv.writer(f)
-        headers = ['ts','taosd'] + process_name_list
         csv_writer.writerow(headers)
     index_file = os.path.join(target_dir,"index.csv")
     # 更新索引文件
