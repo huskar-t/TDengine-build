@@ -102,17 +102,14 @@ if __name__ == "__main__":
     monitor_interval = 15  # 监控间隔时间（秒）
     monitor_time = 2 * 60 * 60   # 监控持续时间（秒）
     target_dir = '../dist/data'
+    print(f"监控时间: {monitor_time}秒")
+    print(f"监控间隔: {monitor_interval}秒")
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
+    print(f"输出目录: {target_dir}")
     
     # 启动进程
     proc_list = []
-    # 获取 taosd 进程
-    taosd_process = None
-    for proc in psutil.process_iter(['pid', 'name']):
-        if proc.info['name'] == 'taosd':
-            taosd_process = proc
-            break
     for name, cmd in processes_config.items():
         proc = start_process(name, cmd)
         proc_list.append(proc)
