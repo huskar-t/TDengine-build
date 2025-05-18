@@ -91,7 +91,7 @@ jobs:
           cd tests
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist
+          git add dist/data
           git commit -m "Auto-update test files"
           git push
       

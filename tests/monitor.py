@@ -97,7 +97,9 @@ if __name__ == "__main__":
     }
     monitor_interval = 5  # 监控间隔时间（秒）
     monitor_time = 20   # 监控持续时间（秒）
-    target_dir = '../dist'
+    target_dir = '../dist/data'
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
 
     # 运行监控
     current_time = datetime.now()

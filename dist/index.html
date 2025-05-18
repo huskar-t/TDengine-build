@@ -118,7 +118,7 @@
             try {
                 // 加载索引文件
                 loadingElement.style.display = 'block';
-                const response = await fetch('index.csv');
+                const response = await fetch('data/index.csv');
                 const csvText = await response.text();
 
                 // 使用 PapaParse 解析 CSV
@@ -193,7 +193,7 @@
             chartContainer.innerHTML = '';
 
             // 加载测试数据文件
-            const response = await fetch(filename);
+            const response = await fetch('data/'+filename);
             const csvText = await response.text();
 
             // 使用 PapaParse 解析 CSV
