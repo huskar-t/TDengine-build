@@ -71,7 +71,7 @@ jobs:
       - name: build tests
         run: |
           cd tests
-          mkdir build && cd build
+          mkdir debug && cd debug
           cmake ..
           make -j8
 
@@ -80,3 +80,4 @@ jobs:
           cd tests/tests
           pip install psutil
           python3 monitor.py
+          tree ../dist
