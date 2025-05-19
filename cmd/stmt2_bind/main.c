@@ -34,7 +34,7 @@ int initEnv(TAOS *taos)
     }
 }
 
-int do_stmt(TAOS *taos, const char *sql, bool hasTag)
+int do_stmt(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms)
 {
 
     TAOS_STMT2_OPTION option = {0, true, true, NULL, NULL};
@@ -80,11 +80,7 @@ int do_stmt(TAOS *taos, const char *sql, bool hasTag)
             ts_len[i] = sizeof(int64_t);
             b_len[i] = 1;
         }
-        // get current timestamp ms
-        struct timespec ts_now;
-        clock_gettime(CLOCK_REALTIME, &ts_now);
-        // get current timestamp ms
-        int64_t ts_now_ms = ts_now.tv_sec * 1000 + ts_now.tv_nsec / 1000000;
+
         for (int i = 0; i < CTB_NUMS; i++)
         {
             ts[i] = (int64_t *)malloc(ROW_NUMS * sizeof(int64_t));
@@ -182,20 +178,25 @@ int main()
         taos_close(taos);
         exit(1);
     }
+    // get current timestamp ms
+    struct timespec ts_now;
+    clock_gettime(CLOCK_REALTIME, &ts_now);
+    // get current timestamp ms
+    int64_t ts_now_ms = ts_now.tv_sec * 1000 + ts_now.tv_nsec / 1000000;
     while (1)
     // for (int i = 0; i < 10; i++)
     {
-        code = do_stmt(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true);
+        code = do_stmt(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true,ts_now_ms);
         if (code != 0)
         {
             exit(1);
         }
-        code = do_stmt(taos, "insert into ? using stb tags(?,?)values(?,?)", true);
+        code = do_stmt(taos, "insert into ? using stb tags(?,?)values(?,?)", true,ts_now_ms);
         if (code != 0)
         {
             exit(1);
         }
-        code = do_stmt(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", false);
+        code = do_stmt(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", true,ts_now_ms);
         if (code != 0)
         {
             exit(1);
