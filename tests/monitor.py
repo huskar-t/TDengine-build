@@ -98,6 +98,7 @@ if __name__ == "__main__":
         "conn": ["../debug/build/bin/conn_test"],
         "insert": ["../debug/build/bin/insert_test"],
         "query": ["../debug/build/bin/query_test"],
+        "stmt2_bind": ["../debug/build/bin/stmt2_bind_test"],
     }
     monitor_interval = 15  # 监控间隔时间（秒）
     monitor_time = 2 * 60 * 60   # 监控持续时间（秒）

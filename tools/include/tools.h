@@ -3,6 +3,7 @@
 //
 
 #include <taos.h>
+#include <semaphore.h>
 
 #ifndef STABILITYTESTING_TOOLS_H
 #define STABILITYTESTING_TOOLS_H
