@@ -182,8 +182,8 @@ int main()
         taos_close(taos);
         exit(1);
     }
-    // while (1)
-    for (int i = 0; i < 10; i++)
+    while (1)
+    // for (int i = 0; i < 10; i++)
     {
         code = do_stmt(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true);
         if (code != 0)
