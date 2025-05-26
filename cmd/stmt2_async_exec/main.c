@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 #include <unistd.h>
+#include <errno.h>
+#include <sys/time.h>
 #include "taos.h"
 #include "tools.h"
 
@@ -34,10 +35,37 @@ int initEnv(TAOS *taos)
     }
 }
 
-int do_stmt(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms)
+typedef struct AsyncExecParam
+{
+    sem_t *sem;
+    TAOS_RES *result;
+    int code;
+    char *errmsg;
+    int affected_rows;
+} AsyncExecParam;
+
+void async_exec_callback(void *param, TAOS_RES *res, int code)
+{
+    AsyncExecParam *async_param = (AsyncExecParam *)param;
+    async_param->result = res;
+    if (code != 0)
+    {
+        async_param->code = code;
+        async_param->errmsg = strdup(taos_errstr(res));
+        async_param->affected_rows = 0;
+    }
+    else
+    {
+        async_param->code = 0;
+        async_param->affected_rows = taos_affected_rows(res);
+    }
+    sem_post(async_param->sem);
+}
+
+int do_stmt_async(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms, AsyncExecParam *param)
 {
 
-    TAOS_STMT2_OPTION option = {0, true, true, NULL, NULL};
+    TAOS_STMT2_OPTION option = {0, true, true, async_exec_callback, param};
 
     TAOS_STMT2 *stmt = taos_stmt2_init(taos, &option);
 
@@ -138,6 +166,23 @@ int do_stmt(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms)
             return code;
         }
 
+        int ret = 0;
+        do
+        {
+            ret = sem_wait(param->sem);
+        } while (-1 == ret && errno == EINTR);
+        if (ret != 0)
+        {
+            fprintf(stderr, "Failed to wait for stmt2 semaphore\n");
+            return ret;
+        }
+        if (param->code != 0)
+        {
+            fprintf(stderr, "stmt2 exec failed: %d:%s\n", param->code, param->errmsg);
+            taos_stmt2_close(stmt);
+            return param->code;
+        }
+
         for (int i = 0; i < CTB_NUMS; i++)
         {
             free(tags[i]);
@@ -176,23 +221,32 @@ int main()
         taos_close(taos);
         exit(1);
     }
+    // get current timestamp ms
     struct timeval tv;
     gettimeofday(&tv, NULL);
     int64_t ts_now_ms = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    AsyncExecParam *param = (AsyncExecParam *)malloc(sizeof(AsyncExecParam));
+    sem_t sem;
+    sem_init(&sem, 0, 0);
+    param->sem = &sem;
+    param->result = NULL;
+    param->code = 0;
+    param->errmsg = NULL;
+    param->affected_rows = 0;
     while (1)
     // for (int i = 0; i < 10; i++)
     {
-        code = do_stmt(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true,ts_now_ms);
+        code = do_stmt_async(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
             exit(1);
         }
-        code = do_stmt(taos, "insert into ? using stb tags(?,?)values(?,?)", true,ts_now_ms);
+        code = do_stmt_async(taos, "insert into ? using stb tags(?,?)values(?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
             exit(1);
         }
-        code = do_stmt(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", true,ts_now_ms);
+        code = do_stmt_async(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
             exit(1);
