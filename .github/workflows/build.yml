@@ -288,6 +288,6 @@ jobs:
       - name: run tests ${{ matrix.exec }}
         run: |
           export ASAN_OPTIONS=detect_odr_violation=0
-          cd tests/tests/debug/build/bin
+          cd tests/debug/build/bin
           ./${{ matrix.exec }} 60
 
