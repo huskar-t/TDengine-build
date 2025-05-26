@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "taos.h"
 #include "tools.h"
 
@@ -162,8 +163,17 @@ int do_stmt(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms)
     taos_stmt2_close(stmt);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    int64_t timeout_seconds = -1; // -1 means infinite loop
+    if (argc > 1)
+    {
+        timeout_seconds = atoll(argv[1]);
+        printf("Timeout set to %ld seconds.\n", timeout_seconds);
+    }
+    int64_t start_time = get_time_seconds();
+    int64_t current_time = start_time;
+    printf("start_time: %ld\n", start_time);
     TAOS *taos = taos_connect("localhost", "root", "taosdata", "", 0);
     if (!taos)
     {
@@ -176,23 +186,29 @@ int main()
         taos_close(taos);
         exit(1);
     }
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    int64_t ts_now_ms = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    int64_t ts_now_ms = get_time_ms();
     while (1)
-    // for (int i = 0; i < 10; i++)
     {
-        code = do_stmt(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true,ts_now_ms);
+        if (timeout_seconds > 0)
+        {
+            current_time = get_time_seconds();
+            if (current_time - start_time >= timeout_seconds)
+            {
+                printf("Timeout reached, end time: %ld\n", current_time);
+                break;
+            }
+        }
+        code = do_stmt(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true, ts_now_ms);
         if (code != 0)
         {
             exit(1);
         }
-        code = do_stmt(taos, "insert into ? using stb tags(?,?)values(?,?)", true,ts_now_ms);
+        code = do_stmt(taos, "insert into ? using stb tags(?,?)values(?,?)", true, ts_now_ms);
         if (code != 0)
         {
             exit(1);
         }
-        code = do_stmt(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", true,ts_now_ms);
+        code = do_stmt(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", true, ts_now_ms);
         if (code != 0)
         {
             exit(1);

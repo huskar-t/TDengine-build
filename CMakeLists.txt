@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(StabilityTesting C)
 
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+if(ENABLE_ASAN)
+    add_compile_options(-fsanitize=address -g3)
+    add_link_options(-fsanitize=address)
+endif()
 set(CMAKE_C_STANDARD 11)
 set(BUILD_DIR ${CMAKE_BINARY_DIR}/build)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIR}/bin)

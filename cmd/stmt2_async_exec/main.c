@@ -207,8 +207,17 @@ int do_stmt_async(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms, A
     taos_stmt2_close(stmt);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    int64_t timeout_seconds = -1; // -1 means infinite loop
+    if (argc > 1)
+    {
+        timeout_seconds = atoll(argv[1]);
+        printf("Timeout set to %ld seconds.\n", timeout_seconds);
+    }
+    int64_t start_time = get_time_seconds();
+    int64_t current_time = start_time;
+    printf("start_time: %ld\n", start_time);
     TAOS *taos = taos_connect("localhost", "root", "taosdata", "", 0);
     if (!taos)
     {
@@ -236,6 +245,15 @@ int main()
     while (1)
     // for (int i = 0; i < 10; i++)
     {
+        if (timeout_seconds > 0)
+        {
+            current_time = get_time_seconds();
+            if (current_time - start_time >= timeout_seconds)
+            {
+                printf("Timeout reached, end time: %ld\n", current_time);
+                break;
+            }
+        }
         code = do_stmt_async(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true, ts_now_ms, param);
         if (code != 0)
         {

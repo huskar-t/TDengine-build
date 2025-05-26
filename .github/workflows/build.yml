@@ -1,4 +1,4 @@
-name: Go
+name: Test TDengine
 
 on:
   schedule:
@@ -54,7 +54,81 @@ jobs:
         id: cache-ext
         with:
           path: TDengine/.externals
-          key: ${{ runner.os }}--${{ hashFiles('TDengine/cmake/external.cmake', 'cmake/in/**') }}-build-ext-v3
+          key: ${{ runner.os }}-noasan-${{ hashFiles('TDengine/cmake/external.cmake', 'cmake/in/**') }}-build-ext-v3
+
+      - name: Cmake TDengine
+        run: |
+          cd TDengine
+          mkdir debug && cd debug
+          cmake .. -DBUILD_DEPENDENCY_TESTS=false
+
+      - name: Make TDengine
+        run: |
+          cd TDengine/debug/
+          make -j8
+      
+      - name: package
+        run: |
+          mkdir -p ./release
+          cp ./TDengine/debug/build/bin/taos ./release/
+          cp ./TDengine/debug/build/bin/taosd ./release/
+          cp ./TDengine/debug/build/lib/libtaosnative.so ./release/
+          cp ./TDengine/include/client/taos.h ./release/
+          cp ./TDengine/debug/build/lib/libtaos.so ./release/
+          cat >./release/install.sh<<EOF 
+          chmod +x ./taos
+          chmod +x ./taosd
+          cp ./taos /bin/
+          cp ./taosd /bin/
+          cp ./libtaosnative.so /usr/lib
+          cp ./libtaos.so /usr/lib
+          cp ./taos.h /usr/include
+          EOF
+          tar -zcvf server.tar.gz ./release
+      - name: cache build
+        uses: actions/cache@v4
+        with:
+          path: server.tar.gz
+          key: ${{ runner.os }}-build-noasan-${{ steps.get_commit_id.outputs.commit_id }}
+      
+  build-asan:
+    runs-on: ubuntu-24.04
+    outputs:
+      commit_id: ${{ steps.get_commit_id.outputs.commit_id }}
+    steps:
+      - name: checkout TDengine by push
+        if: github.event_name == 'push' || github.event_name == 'schedule'
+        uses: actions/checkout@v4
+        with:
+          repository: 'taosdata/TDengine'
+          path: 'TDengine'
+          ref: main
+      
+      - name: checkout TDengine manually
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          repository: 'taosdata/TDengine'
+          path: 'TDengine'
+          ref: ${{ inputs.tbBranch }}
+
+      - name: get_commit_id
+        id: get_commit_id
+        run: |
+          cd TDengine
+          echo "commit_id=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Get CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: 3.31.6
+
+      - name: Cache externals built
+        uses: actions/cache@v4
+        id: cache-ext
+        with:
+          path: TDengine/.externals
+          key: ${{ runner.os }}-asan-${{ hashFiles('TDengine/cmake/external.cmake', 'cmake/in/**') }}-build-ext-v3
 
       - name: Cmake TDengine
         run: |
@@ -89,8 +163,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: server.tar.gz
-          key: ${{ runner.os }}-build-${{ steps.get_commit_id.outputs.commit_id }}
-      
+          key: ${{ runner.os }}-build-asan-${{ steps.get_commit_id.outputs.commit_id }}
 
   test:
     runs-on: ubuntu-24.04
@@ -101,9 +174,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: server.tar.gz
-          key: ${{ runner.os }}-build-${{ needs.build.outputs.commit_id }}
+          key: ${{ runner.os }}-build-noasan-${{ needs.build.outputs.commit_id }}
           restore-keys: |
-            ${{ runner.os }}-build-
+            ${{ runner.os }}-build-noasan-
       
       - name: install
         run: |
@@ -138,7 +211,6 @@ jobs:
 
       - name: run tests
         run: |
-          export ASAN_OPTIONS=detect_odr_violation=0
           cd tests/tests
           taos -s "create database test WAL_RETENTION_PERIOD 0"
           sleep 5
@@ -153,13 +225,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull
-          index_file="dist/data/index.csv"
-          time_str=$(date "+%Y-%m-%d %H:%M:%S")
-          output_file_name="${{ steps.get_result_file_name.outputs.result_file_name }}"
-          if [ ! -f "$index_file" ] || [ ! -s "$index_file" ]; then
-              echo "ts,filename" > "$index_file"
-          fi
-          echo "$time_str,$output_file_name" >> "$index_file"
+          cd tests
+          python3 -u index.py --result_file_name ${{ steps.get_result_file_name.outputs.result_file_name }}
+          cd ..
           git add -f dist/data
           git commit -m "Auto-update test files"
           git push
@@ -173,3 +241,53 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  test-asan:
+    runs-on: ubuntu-24.04
+    needs: build-asan
+    name: Test TDengine ASAN
+    strategy:
+      matrix:
+        exec: ["conn_test", "insert_test", "query_test", "stmt2_async_exec_test", "stmt2_bind_test"]
+    steps:
+      - name: get cache server
+        id: get-cache-server-pr
+        uses: actions/cache@v4
+        with:
+          path: server.tar.gz
+          key: ${{ runner.os }}-build-asan-${{ needs.build-asan.outputs.commit_id }}
+          restore-keys: |
+            ${{ runner.os }}-build-asan-
+      
+      - name: install
+        run: |
+          tar -zxvf server.tar.gz
+          cd release && sudo sh install.sh
+  
+      - name: start shell
+        run: |
+          cat >start.sh<<EOF
+          ulimit -n 65535 && TAOS_SUPPORT_VNODES=256 taosd
+          EOF
+
+      - name: start taosd
+        run: nohup sudo sh ./start.sh & disown
+      
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          path: 'tests'
+      
+      - name: build tests
+        run: |
+          cd tests
+          mkdir debug && cd debug
+          cmake .. -DENABLE_ASAN=1
+          make -j8
+
+      - name: run tests ${{ matrix.exec }}
+        run: |
+          export ASAN_OPTIONS=detect_odr_violation=0
+          cd tests/tests/debug/build/bin
+          ./${{ matrix.exec }} 60
+
