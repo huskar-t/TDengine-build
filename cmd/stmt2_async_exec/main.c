@@ -15,19 +15,19 @@ void stmtAsyncQueryCb(void *param, TAOS_RES *pRes, int code) { sleep(1); }
 
 int initEnv(TAOS *taos)
 {
-    int code = execute_query(taos, "create database if not exists db WAL_RETENTION_PERIOD 0", false, 0);
+    int code = execute_query(taos, "create database if not exists db_async WAL_RETENTION_PERIOD 0", false, 0);
     if (code != 0)
     {
         printf("failed to execute create database. error:%s\n", taos_errstr(taos));
         return code;
     }
-    code = execute_query(taos, "create table if not exists db.stb (ts timestamp, b binary(10)) tags(t1 int, t2 binary(10))", false, 0);
+    code = execute_query(taos, "create table if not exists db_async.stb (ts timestamp, b binary(10)) tags(t1 int, t2 binary(10))", false, 0);
     if (code != 0)
     {
         printf("failed to execute create table. error:%s\n", taos_errstr(taos));
         return code;
     }
-    code = execute_query(taos, "use db", false, 0);
+    code = execute_query(taos, "use db_async", false, 0);
     if (code != 0)
     {
         printf("failed to execute use database. error:%s\n", taos_errstr(taos));
