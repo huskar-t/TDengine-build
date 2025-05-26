@@ -3,6 +3,8 @@
 #include <semaphore.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h>
+#include <inttypes.h>
 #include "taos.h"
 #include "tools.h"
 
@@ -76,9 +78,11 @@ int main() {
     clock_gettime(CLOCK_REALTIME, &ts_now);
     // get current timestamp ms
     int64_t ts_now_ms = ts_now.tv_sec * 1000 + ts_now.tv_nsec / 1000000;
-    char * insert_sql = sprintf("insert into all_type using all_type tags(%lld, true, 1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10.0, 'hello', 'world') "
-                             "values(%lld, true, 1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10.0, 'hello', 'world')",
-                             ts_now_ms, ts_now_ms);
+    char insert_sql[512];
+    sprintf(insert_sql,
+        "insert into t1 using all_type tags(%" PRId64 ", true, 1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10.0, 'hello', 'world') "
+        "values(%" PRId64 ", true, 1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10.0, 'hello', 'world')",
+        ts_now_ms, ts_now_ms);
     while (1) {
         code = execute_query(taos, insert_sql, false, 0);
         if (code != 0) {
