@@ -114,7 +114,7 @@ if __name__ == "__main__":
         "stmt2_bind": ["../debug/build/bin/stmt2_bind_test"],
     }
     monitor_interval = 15  # 监控间隔时间（秒）
-    monitor_time = 60   # 监控持续时间（秒）
+    monitor_time = 2 * 60 * 60 # 监控持续时间（秒）
     target_dir = '../dist/data'
     print(f"监控时间: {monitor_time}秒")
     print(f"监控间隔: {monitor_interval}秒")
