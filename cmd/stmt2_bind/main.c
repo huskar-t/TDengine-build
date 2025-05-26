@@ -14,7 +14,7 @@ void stmtAsyncQueryCb(void *param, TAOS_RES *pRes, int code) { sleep(1); }
 
 int initEnv(TAOS *taos)
 {
-    int code = execute_query(taos, "create database if not exists db", false, 0);
+    int code = execute_query(taos, "create database if not exists db WAL_RETENTION_PERIOD 0", false, 0);
     if (code != 0)
     {
         printf("failed to execute create database. error:%s\n", taos_errstr(taos));

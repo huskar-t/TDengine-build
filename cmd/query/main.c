@@ -19,7 +19,7 @@ int main() {
         taos_cleanup();
         return -1;
     }
-    int code = execute_query(taos, "create database if not exists test", false, 0);
+    int code = execute_query(taos, "create database if not exists test WAL_RETENTION_PERIOD 0", false, 0);
     if (code != 0) {
         taos_close(taos);
         exit(1);

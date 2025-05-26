@@ -139,7 +139,7 @@ jobs:
       - name: run tests
         run: |
           cd tests/tests
-          taos -s "create database test"
+          taos -s "create database test WAL_RETENTION_PERIOD 0"
           sleep 5
           taos -s "create table if not exists test.all_type(ts timestamp,c1 bool,c2 tinyint,c3 smallint,c4 int,c5 bigint,c6 tinyint unsigned,c7 smallint unsigned,c8 int unsigned,c9 bigint unsigned,c10 float,c11 double,c12 binary(20),c13 nchar(20))tags(tts timestamp,tc1 bool,tc2 tinyint,tc3 smallint,tc4 int,tc5 bigint,tc6 tinyint unsigned,tc7 smallint unsigned,tc8 int unsigned,tc9 bigint unsigned,tc10 float,tc11 double,tc12 binary(20),tc13 nchar(20))"
           pip install psutil
