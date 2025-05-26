@@ -17,8 +17,10 @@ permissions:
   id-token: write
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-24.04
+    outputs:
+      commit_id: ${{ steps.get_commit_id.outputs.commit_id }}
     steps:
       - name: checkout TDengine by push
         if: github.event_name == 'push' || github.event_name == 'schedule'
@@ -35,6 +37,12 @@ jobs:
           repository: 'taosdata/TDengine'
           path: 'TDengine'
           ref: ${{ inputs.tbBranch }}
+
+      - name: get_commit_id
+        id: get_commit_id
+        run: |
+          cd TDengine
+          echo "commit_id=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Get CMake
         uses: lukka/get-cmake@latest
@@ -58,8 +66,48 @@ jobs:
         run: |
           cd TDengine/debug/
           make -j8
-          sudo make install
+      
+      - name: package
+        run: |
+          mkdir -p ./release
+          cp ./TDengine/debug/build/bin/taos ./release/
+          cp ./TDengine/debug/build/bin/taosd ./release/
+          cp ./TDengine/debug/build/lib/libtaosnative.so ./release/
+          cp ./TDengine/include/client/taos.h ./release/
+          cat >./release/install.sh<<EOF 
+          chmod +x ./taos
+          chmod +x ./taosd
+          cp ./taos /bin/
+          cp ./taosd /bin/
+          cp ./libtaosnative.so /usr/lib
+          cp ./taos.h /usr/include
+          EOF
+          tar -zcvf server.tar.gz ./release
+      - name: cache build
+        uses: actions/cache@v4
+        with:
+          path: server.tar.gz
+          key: ${{ runner.os }}-build-${{ steps.get_commit_id.outputs.commit_id }}
+      
 
+  test:
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: get cache server
+        id: get-cache-server-pr
+        uses: actions/cache@v4
+        with:
+          path: server.tar.gz
+          key: ${{ runner.os }}-build-${{ needs.build.outputs.commit_id }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+      
+      - name: install
+        run: |
+          tar -zxvf server.tar.gz
+          cd release && sudo sh install.sh
+  
       - name: start shell
         run: |
           cat >start.sh<<EOF
@@ -81,6 +129,11 @@ jobs:
           cmake ..
           make -j8
 
+      - name: get result file name
+        id: get_result_file_name
+        run: |
+          echo "result_file_name=result_$(date "+%Y%m%d_%H%M%S").csv" >> $GITHUB_OUTPUT
+
       - name: run tests
         run: |
           cd tests/tests
@@ -88,7 +141,7 @@ jobs:
           sleep 5
           taos -s "create table if not exists test.all_type(ts timestamp,c1 bool,c2 tinyint,c3 smallint,c4 int,c5 bigint,c6 tinyint unsigned,c7 smallint unsigned,c8 int unsigned,c9 bigint unsigned,c10 float,c11 double,c12 binary(20),c13 nchar(20))tags(tts timestamp,tc1 bool,tc2 tinyint,tc3 smallint,tc4 int,tc5 bigint,tc6 tinyint unsigned,tc7 smallint unsigned,tc8 int unsigned,tc9 bigint unsigned,tc10 float,tc11 double,tc12 binary(20),tc13 nchar(20))"
           pip install psutil
-          python3 -u monitor.py
+          python3 -u monitor.py --result_file_name ${{ steps.get_result_file_name.outputs.result_file_name }}
           tree ../dist
 
       - name: push dist
@@ -96,6 +149,14 @@ jobs:
           cd tests
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull
+          index_file="dist/data/index.csv"
+          time_str=$(date "+%Y-%m-%d %H:%M:%S")
+          output_file_name="${{ steps.get_result_file_name.outputs.result_file_name }}"
+          if [ ! -f "$index_file" ] || [ ! -s "$index_file" ]; then
+              echo "ts,filename" > "$index_file"
+          fi
+          echo "$time_str,$output_file_name" >> "$index_file"
           git add -f dist/data
           git commit -m "Auto-update test files"
           git push

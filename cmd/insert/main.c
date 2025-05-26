@@ -71,8 +71,14 @@ int main() {
         taos_close(taos);
         exit(1);
     }
-    const char *insert_sql = "insert into t1 using all_type tags(now, true, 1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10.0, 'hello', 'world') "
-                             "values(now, true, 1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10.0, 'hello', 'world')";
+    // get current timestamp ms
+    struct timespec ts_now;
+    clock_gettime(CLOCK_REALTIME, &ts_now);
+    // get current timestamp ms
+    int64_t ts_now_ms = ts_now.tv_sec * 1000 + ts_now.tv_nsec / 1000000;
+    char * insert_sql = sprintf("insert into all_type using all_type tags(%lld, true, 1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10.0, 'hello', 'world') "
+                             "values(%lld, true, 1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10.0, 'hello', 'world')",
+                             ts_now_ms, ts_now_ms);
     while (1) {
         code = execute_query(taos, insert_sql, false, 0);
         if (code != 0) {

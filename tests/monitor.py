@@ -1,3 +1,4 @@
+import argparse
 import csv
 import os
 import subprocess
@@ -93,6 +94,18 @@ def run_monitoring(proc_list,output_file,monitor_interval,monitor_time):
         time.sleep(monitor_interval)
 
 if __name__ == "__main__":
+    # 通过命令行参数获取输出文件名 --result_file_name
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--result_file_name', required=True, help='结果文件名')
+    args = parser.parse_args()
+    output_file_name = args.result_file_name
+    if not output_file_name:
+        print("未提供输出文件名")
+        sys.exit(1)
+    # 检查输出文件名是否以 .csv 结尾
+    if not output_file_name.endswith('.csv'):
+        print("输出文件名必须以 .csv 结尾")
+        sys.exit(1)
     # 配置要监控的进程 (示例配置)
     processes_config = {
         "conn": ["../debug/build/bin/conn_test"],
@@ -101,7 +114,7 @@ if __name__ == "__main__":
         "stmt2_bind": ["../debug/build/bin/stmt2_bind_test"],
     }
     monitor_interval = 15  # 监控间隔时间（秒）
-    monitor_time = 2 * 60 * 60   # 监控持续时间（秒）
+    monitor_time = 60   # 监控持续时间（秒）
     target_dir = '../dist/data'
     print(f"监控时间: {monitor_time}秒")
     print(f"监控间隔: {monitor_interval}秒")
@@ -118,9 +131,6 @@ if __name__ == "__main__":
     # 运行监控
     current_time = datetime.now()
     time_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
-    file_time_str = current_time.strftime("%Y%m%d_%H%M%S")
-    # 生成输出文件名
-    output_file_name = f"result_{file_time_str}.csv"
     # 创建文件,写行首
     process_name_list = list(processes_config.keys())
     output_file = os.path.join(target_dir, output_file_name)
@@ -132,13 +142,6 @@ if __name__ == "__main__":
         csv_writer = csv.writer(f)
         csv_writer.writerow(headers)
     index_file = os.path.join(target_dir,"index.csv")
-    # 更新索引文件
-    with open(index_file, 'a') as f:
-        csv_writer = csv.writer(f)
-        if os.path.getsize(index_file) == 0:  # 如果文件为空，写入表头
-            csv_writer.writerow(['ts', 'filename'])
-        csv_writer.writerow([time_str,output_file_name])
-
     try:
         run_monitoring(proc_list, output_file,monitor_interval,monitor_time)
     finally:
