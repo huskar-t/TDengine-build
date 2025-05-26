@@ -60,7 +60,7 @@ jobs:
         run: |
           cd TDengine
           mkdir debug && cd debug
-          cmake .. -DBUILD_DEPENDENCY_TESTS=false
+          cmake .. -DBUILD_DEPENDENCY_TESTS=false -DBUILD_SANITIZER=1
 
       - name: Make TDengine
         run: |
