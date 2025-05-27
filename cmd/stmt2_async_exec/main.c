@@ -205,6 +205,7 @@ int do_stmt_async(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms, A
     free(tbs);
 
     taos_stmt2_close(stmt);
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -257,16 +258,19 @@ int main(int argc, char *argv[])
         code = do_stmt_async(taos, "insert into db_async.? using db_async.stb tags(?,?)values(?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
+            fprintf(stderr, "Failed to execute async statement1: %d:%s\n", code, param->errmsg);
             exit(1);
         }
         code = do_stmt_async(taos, "insert into ? using stb tags(?,?)values(?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
+            fprintf(stderr, "Failed to execute async statement2: %d:%s\n", code, param->errmsg);
             exit(1);
         }
         code = do_stmt_async(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
+            fprintf(stderr, "Failed to execute async statement3: %d:%s\n", code, param->errmsg);
             exit(1);
         }
     }
