@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
                 break;
             }
         }
-        code = do_stmt_async(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true, ts_now_ms, param);
+        code = do_stmt_async(taos, "insert into db_async.? using db_async.stb tags(?,?)values(?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
             exit(1);
