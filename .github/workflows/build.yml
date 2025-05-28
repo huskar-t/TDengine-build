@@ -43,13 +43,21 @@ jobs:
         run: |
           cd TDengine
           echo "commit_id=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-
+      - name: cache build
+        uses: actions/cache@v4
+        id: cache-build
+        with:
+          path: server.tar.gz
+          key: ${{ runner.os }}-build-noasan-${{ steps.get_commit_id.outputs.commit_id }}
+      
       - name: Get CMake
+        if: steps.cache-build.outputs.cache-hit != 'true'
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: 3.31.6
 
       - name: Cache externals built
+        if: steps.cache-build.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         id: cache-ext
         with:
@@ -57,17 +65,20 @@ jobs:
           key: ${{ runner.os }}-noasan-${{ hashFiles('TDengine/cmake/external.cmake', 'cmake/in/**') }}-build-ext-v3
 
       - name: Cmake TDengine
+        if: steps.cache-build.outputs.cache-hit != 'true'
         run: |
           cd TDengine
           mkdir debug && cd debug
           cmake .. -DBUILD_DEPENDENCY_TESTS=false
 
       - name: Make TDengine
+        if: steps.cache-build.outputs.cache-hit != 'true'
         run: |
           cd TDengine/debug/
           make -j8
       
       - name: package
+        if: steps.cache-build.outputs.cache-hit != 'true'
         run: |
           mkdir -p ./release
           cp ./TDengine/debug/build/bin/taos ./release/
@@ -85,11 +96,7 @@ jobs:
           cp ./taos.h /usr/include
           EOF
           tar -zcvf server.tar.gz ./release
-      - name: cache build
-        uses: actions/cache@v4
-        with:
-          path: server.tar.gz
-          key: ${{ runner.os }}-build-noasan-${{ steps.get_commit_id.outputs.commit_id }}
+
       
   build-asan:
     runs-on: ubuntu-24.04
@@ -117,13 +124,22 @@ jobs:
         run: |
           cd TDengine
           echo "commit_id=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: cache build
+        uses: actions/cache@v4
+        id: cache-build
+        with:
+          path: server.tar.gz
+          key: ${{ runner.os }}-build-asan-${{ steps.get_commit_id.outputs.commit_id }}
 
       - name: Get CMake
+        if: steps.cache-build.outputs.cache-hit != 'true'
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: 3.31.6
 
       - name: Cache externals built
+        if: steps.cache-build.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         id: cache-ext
         with:
@@ -131,17 +147,20 @@ jobs:
           key: ${{ runner.os }}-asan-${{ hashFiles('TDengine/cmake/external.cmake', 'cmake/in/**') }}-build-ext-v3
 
       - name: Cmake TDengine
+        if: steps.cache-build.outputs.cache-hit != 'true'
         run: |
           cd TDengine
           mkdir debug && cd debug
           cmake .. -DBUILD_DEPENDENCY_TESTS=false -DBUILD_SANITIZER=1
 
       - name: Make TDengine
+        if: steps.cache-build.outputs.cache-hit != 'true'
         run: |
           cd TDengine/debug/
           make -j8
       
       - name: package
+        if: steps.cache-build.outputs.cache-hit != 'true'
         run: |
           mkdir -p ./release
           cp ./TDengine/debug/build/bin/taos ./release/
@@ -159,11 +178,7 @@ jobs:
           cp ./taos.h /usr/include
           EOF
           tar -zcvf server.tar.gz ./release
-      - name: cache build
-        uses: actions/cache@v4
-        with:
-          path: server.tar.gz
-          key: ${{ runner.os }}-build-asan-${{ steps.get_commit_id.outputs.commit_id }}
+ 
 
   test:
     runs-on: ubuntu-24.04
@@ -249,6 +264,7 @@ jobs:
     needs: build-asan
     name: Test TDengine ASAN
     strategy:
+      fail-fast: false
       matrix:
         exec: ["conn_test", "insert_test", "query_test", "stmt2_async_exec_test", "stmt2_bind_test"]
     steps:
@@ -288,7 +304,6 @@ jobs:
           make -j8
 
       - name: run tests ${{ matrix.exec }}
-        continue-on-error: true
         run: |
           export ASAN_OPTIONS=detect_odr_violation=0
           taos -s "create database test WAL_RETENTION_PERIOD 0"
