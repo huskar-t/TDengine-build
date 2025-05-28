@@ -297,5 +297,5 @@ jobs:
           taos -s "create database if not exists db_async WAL_RETENTION_PERIOD 0"
           taos -s "create database if not exists db WAL_RETENTION_PERIOD 0"
           cd tests/debug/build/bin
-          ./${{ matrix.exec }} 60
+          ./${{ matrix.exec }} 7200
 
