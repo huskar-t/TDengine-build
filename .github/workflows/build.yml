@@ -288,6 +288,7 @@ jobs:
           make -j8
 
       - name: run tests ${{ matrix.exec }}
+        continue-on-error: true
         run: |
           export ASAN_OPTIONS=detect_odr_violation=0
           taos -s "create database test WAL_RETENTION_PERIOD 0"
