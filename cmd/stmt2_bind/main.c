@@ -33,6 +33,7 @@ int initEnv(TAOS *taos)
         printf("failed to execute use database. error:%s\n", taos_errstr(taos));
         return code;
     }
+    return 0;
 }
 
 int do_stmt(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms)
@@ -161,6 +162,7 @@ int do_stmt(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms)
     free(tbs);
 
     taos_stmt2_close(stmt);
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -201,16 +203,19 @@ int main(int argc, char *argv[])
         code = do_stmt(taos, "insert into db.? using db.stb tags(?,?)values(?,?)", true, ts_now_ms);
         if (code != 0)
         {
+            printf("Failed to execute async statement1: %d\n", code);
             exit(1);
         }
         code = do_stmt(taos, "insert into ? using stb tags(?,?)values(?,?)", true, ts_now_ms);
         if (code != 0)
         {
+            printf("Failed to execute async statement1: %d\n", code);
             exit(1);
         }
         code = do_stmt(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", true, ts_now_ms);
         if (code != 0)
-        {
+        {            
+            printf("Failed to execute async statement2: %d\n", code);
             exit(1);
         }
     }

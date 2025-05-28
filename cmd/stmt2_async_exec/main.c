@@ -33,6 +33,7 @@ int initEnv(TAOS *taos)
         printf("failed to execute use database. error:%s\n", taos_errstr(taos));
         return code;
     }
+    return 0;
 }
 
 typedef struct AsyncExecParam
@@ -173,12 +174,12 @@ int do_stmt_async(TAOS *taos, const char *sql, bool hasTag, int64_t ts_now_ms, A
         } while (-1 == ret && errno == EINTR);
         if (ret != 0)
         {
-            fprintf(stderr, "Failed to wait for stmt2 semaphore\n");
+            printf("Failed to wait for stmt2 semaphore\n");
             return ret;
         }
         if (param->code != 0)
         {
-            fprintf(stderr, "stmt2 exec failed: %d:%s\n", param->code, param->errmsg);
+            printf("stmt2 exec failed: %d:%s\n", param->code, param->errmsg);
             taos_stmt2_close(stmt);
             return param->code;
         }
@@ -258,22 +259,28 @@ int main(int argc, char *argv[])
         code = do_stmt_async(taos, "insert into db_async.? using db_async.stb tags(?,?)values(?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
-            fprintf(stderr, "Failed to execute async statement1: %d:%s\n", code, param->errmsg);
+            printf("Failed to execute async statement1: %d:%s\n", code, param->errmsg);
             exit(1);
         }
         code = do_stmt_async(taos, "insert into ? using stb tags(?,?)values(?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
-            fprintf(stderr, "Failed to execute async statement2: %d:%s\n", code, param->errmsg);
+            printf("Failed to execute async statement2: %d:%s\n", code, param->errmsg);
             exit(1);
         }
         code = do_stmt_async(taos, "insert into stb (tbname,ts,b,t1,t2) values(?,?,?,?,?)", true, ts_now_ms, param);
         if (code != 0)
         {
-            fprintf(stderr, "Failed to execute async statement3: %d:%s\n", code, param->errmsg);
+            printf("Failed to execute async statement3: %d:%s\n", code, param->errmsg);
             exit(1);
         }
     }
     taos_close(taos);
     taos_cleanup();
+    if (param->errmsg) {
+        free(param->errmsg);
+    }
+    sem_destroy(param->sem);
+    free(param);
+    return 0;
 }
