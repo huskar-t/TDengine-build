@@ -113,6 +113,7 @@ if __name__ == "__main__":
         "query": ["../debug/build/bin/query_test"],
         "stmt2_bind": ["../debug/build/bin/stmt2_bind_test"],
         "stmt2_async_bind": ["../debug/build/bin/stmt2_async_exec_test"],
+        "stmt2_query": ["../debug/build/bin/stmt2_query_test"],
     }
     monitor_interval = 15  # 监控间隔时间（秒）
     monitor_time = 2 * 60 * 60 # 监控持续时间（秒）
