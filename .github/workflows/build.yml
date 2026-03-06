@@ -267,7 +267,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        exec: ["conn_test", "insert_test", "query_test", "stmt2_async_exec_test", "stmt2_bind_test"]
+        exec: ["conn_test", "insert_test", "query_test", "stmt2_async_exec_test", "stmt2_bind_test", "stmt2_query_test"]
     steps:
       - name: get cache server
         id: get-cache-server-pr
